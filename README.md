@@ -10,6 +10,13 @@ BaseNavigationStack is a Swift package that provides a flexible and reusable bas
 
 `BaseNavigationStack` is designed to simplify the management of navigation stacks in SwiftUI applications. It introduces a generic approach to handle different types for views and presentation targets. This allows you to build navigation flows with ease, supporting various types of views and presentation styles.
 
+## Example: 
+
+[<video width="640" height="360" controls>
+  <video src="https://github.com/iletai/BaseNavigationStack/assets/26614687/9f4ae052-577d-4b99-bf5a-39eee6e75c9a.mp4" type="video/mp4">
+</video>](https://github.com/iletai/BaseNavigationStack/assets/26614687/9f4ae052-577d-4b99-bf5a-39eee6e75c9a)
+
+
 ## Installation
 
 ### Swift Package Manager
