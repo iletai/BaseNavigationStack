@@ -20,6 +20,7 @@ struct ListView: View {
             HStack {
                 Button {
                     dimiss()
+                    navigationRouter.dismiss()
                 } label: {
                     Text("Dis")
                 }
@@ -60,6 +61,7 @@ struct ListView: View {
             Spacer()
         }
         .navigationTitle("ListView")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -77,6 +79,7 @@ struct SplashView: View {
             HStack {
                 Button {
                     dimiss()
+                    navigationRouter.dismiss()
                 } label: {
                     Text("Dis")
                 }
@@ -105,6 +108,7 @@ struct SplashView: View {
             Spacer()
         }
         .navigationTitle("Splash")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

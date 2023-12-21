@@ -20,14 +20,11 @@ extension BaseNavigationStack {
         /// View Is Presenting Full
         var presentingFullScreen: ScreenView? = nil
 
-        /// View Is Presenting Modal
-        var presentingModal: ScreenView? = nil
-
         /// Status Is Presenting A View
         var isPresented: Binding<ScreenView?>
 
         var isPresenting: Bool {
-            return presentingSheet != nil || presentingFullScreen != nil || presentingModal != nil
+            return presentingSheet != nil || presentingFullScreen != nil
         }
         
         /// Initial

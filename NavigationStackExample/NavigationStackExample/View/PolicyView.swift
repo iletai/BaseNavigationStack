@@ -20,8 +20,14 @@ struct PolicyView: View {
             HStack {
                 Button {
                     dimiss()
+                    navigationRouter.dismiss()
                 } label: {
                     Text("Dis")
+                }
+                Button {
+                    navigationRouter.presentSheet(.splash)
+                } label: {
+                    Text("PresentSplas")
                 }
             }
             HStack {
