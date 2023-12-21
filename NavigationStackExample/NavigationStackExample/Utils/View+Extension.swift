@@ -31,12 +31,15 @@ extension View {
                 PolicyView()
             case .list:
                 ListView()
+            case .splash:
+                SplashView()
             default:
                 EmptyView()
             }
         }
     }
 
+    @MainActor
     func withFullScreenRouter(_ presentFullView: Binding<ViewNavigationTarget?>) -> some View {
         fullScreenCover(item: presentFullView) { fullView in
             switch fullView {

@@ -7,11 +7,14 @@ import Observation
 
 @Observable
 /// Base Navigation Stack With Generic Type.
-public class BaseNavigationStack<ScreenView> where ScreenView: Hashable {
+public class BaseNavigationStack<ScreenView> where ScreenView: BaseViewProtocol {
     private(set) var state: RootingState
     public var urlHandler: ((URL) -> OpenURLAction.Result)?
+
     public init(isPresented: Binding<ScreenView?>) {
-        state = RootingState(isPresented: isPresented)
+        state = RootingState(
+            isPresented: isPresented
+        )
     }
 }
 
@@ -25,7 +28,6 @@ public extension BaseNavigationStack {
     /// - Parameter viewSpec: Push View
     @MainActor
     func pushToView(_ viewSpec: ScreenView) {
-        // if state.isPresenting { dismiss() }
         state.navigationPath.append(viewSpec)
     }
     
@@ -40,7 +42,6 @@ public extension BaseNavigationStack {
     func navigateToRoot() {
         if state.isPresenting {
             state.presentingFullScreen = nil
-            state.presentingModal = nil
             state.presentingSheet = nil
         }
         state.navigationPath.removeAllSafe()
@@ -57,7 +58,6 @@ public extension BaseNavigationStack {
     /// - Parameter viewSpec: present Sheet View
     @MainActor
     func presentSheet(_ viewSpec: ScreenView) {
-        // if state.isPresenting { dismiss() }
         state.presentingSheet = viewSpec
     }
 
@@ -65,17 +65,9 @@ public extension BaseNavigationStack {
     /// - Parameter viewSpec: PushViewTarget
     @MainActor
     func presentFullScreen(_ viewSpec: ScreenView) {
-        // if state.isPresenting { dismiss() }
         state.presentingFullScreen = viewSpec
     }
-    
-    /// Present Modal View
-    /// - Parameter viewSpec: PushViewTarget
-    @MainActor
-    func presentModal(_ viewSpec: ScreenView) {
-        state.presentingModal = viewSpec
-    }
-    
+
     /// Dismiss If View Is Presenting or Embed In Navigation Stack
     @MainActor
     func dismiss() {
@@ -83,13 +75,16 @@ public extension BaseNavigationStack {
             state.presentingSheet = nil
         } else if state.presentingFullScreen != nil {
             state.presentingFullScreen = nil
-        } else if state.presentingModal != nil {
-            state.presentingModal = nil
         } else if navigationPath.count > 1 {
             state.navigationPath.removeLast()
         } else {
             state.isPresented.wrappedValue = nil
         }
+    }
+
+    public func handleOpenURL(url: URL) -> OpenURLAction.Result {
+        // TODO: Update URL Handler
+        return urlHandler?(url) ?? .systemAction
     }
 }
 
@@ -104,10 +99,6 @@ public extension BaseNavigationStack {
     
     var presentingFullScreen: Binding<ScreenView?> {
         binding(keyPath: \.presentingFullScreen)
-    }
-    
-    var presentingModal: Binding<ScreenView?> {
-        binding(keyPath: \.presentingModal)
     }
     
     var isPresented: Binding<ScreenView?> {

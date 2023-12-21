@@ -85,6 +85,7 @@
 		3E7A81DA2B2B0F4D0003D5A3 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				3EEC9A792B301B540082BEE9 /* ViewModifer */,
 				3E7A81DB2B2B0FA90003D5A3 /* View+Extension.swift */,
 			);
 			path = Utils;
@@ -106,6 +107,13 @@
 				3E7A81E32B2C50A80003D5A3 /* PolicyView.swift */,
 			);
 			path = View;
+			sourceTree = "<group>";
+		};
+		3EEC9A792B301B540082BEE9 /* ViewModifer */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = ViewModifer;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
