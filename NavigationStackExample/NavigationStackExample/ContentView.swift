@@ -11,10 +11,15 @@ import Foundation
 
 typealias BaseNavigation = BaseNavigationStack<ViewNavigationTarget>
 struct ContentView: View {
+    @State var baseNavigation = BaseNavigation(isPresented: .constant(nil))
     var body: some View {
-        BaseNavigationView<SplashView, ViewNavigationTarget> {
+        NavigationStack(path: baseNavigation.navigationPath) {
             SplashView()
+                .withNavigationRouter()
+                .withSheetRouter(sheetDestination: baseNavigation.presentingSheet)
+                .withFullScreenRouter(baseNavigation.presentingFullScreen)
         }
+        .environment(baseNavigation)
     }
 }
 
