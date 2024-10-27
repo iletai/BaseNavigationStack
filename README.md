@@ -25,7 +25,7 @@ You can use the Swift Package Manager to install `BaseNavigationStack` by adding
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/iletai/BaseNavigationStack.git", from: "1.0.0"),
+    .package(url: "https://github.com/iletai/BaseNavigationStack.git", from: "1.2.0"),
 ],
 targets: [
     .target(name: "YourTarget", dependencies: ["BaseNavigationStack"]),
