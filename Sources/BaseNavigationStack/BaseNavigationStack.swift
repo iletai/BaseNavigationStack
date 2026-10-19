@@ -44,7 +44,7 @@ public extension BaseNavigationStack {
             state.presentingFullScreen = nil
             state.presentingSheet = nil
         }
-        state.navigationPath.removeAllSafe()
+        state.navigationPath.removeAll()
     }
     
     /// Change Base Navigation Stack
