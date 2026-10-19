@@ -17,19 +17,27 @@ public final class NavigationRouter<Route: Hashable & Sendable, Sheet: Identifia
     public var sheet: Sheet?
     public var cover: Cover?
 
+    /// Maximum stack depth allowed to prevent memory bloating and SwiftUI layout warnings.
+    /// Default is 30.
+    public var maxDepth: Int
+
     public init(
         initialPath: [Route] = [],
         initialSheet: Sheet? = nil,
-        initialCover: Cover? = nil
+        initialCover: Cover? = nil,
+        maxDepth: Int = 30
     ) {
         self.path = initialPath
         self.sheet = initialSheet
         self.cover = initialCover
+        self.maxDepth = max(1, maxDepth)
     }
 
     /// Pushes a new route onto the navigation stack.
     /// Deduplicates immediate subsequent pushes of the identical route to prevent UI glitches.
+    /// Rejects push if current stack depth reaches `maxDepth`.
     public func push(_ route: Route) {
+        guard path.count < maxDepth else { return }
         if path.last != route {
             path.append(route)
         }
@@ -58,7 +66,7 @@ public final class NavigationRouter<Route: Hashable & Sendable, Sheet: Identifia
     public func replacePath(_ newPath: [Route]) {
         sheet = nil
         cover = nil
-        path = newPath
+        path = Array(newPath.prefix(maxDepth))
     }
 
     /// Presents a modal sheet.
@@ -86,5 +94,12 @@ public final class NavigationRouter<Route: Hashable & Sendable, Sheet: Identifia
     public func dismissModals() {
         sheet = nil
         cover = nil
+    }
+
+    /// Safely dispatches a navigation mutation from any background Task or external actor context.
+    nonisolated public func send(_ action: @escaping @MainActor (NavigationRouter) -> Void) {
+        Task { @MainActor in
+            action(self)
+        }
     }
 }
