@@ -16,8 +16,8 @@ final class PerformanceAndAsyncTests: XCTestCase {
     func testStackMaxDepthGuard() {
         let router = NavigationRouter<AsyncRoute, EmptyAsyncSheet, EmptyAsyncSheet>(maxDepth: 5)
 
-        for i in 1...10 {
-            router.push(.step(i))
+        for stepIndex in 1...10 {
+            router.push(.step(stepIndex))
         }
 
         XCTAssertEqual(router.path.count, 5, "Stack must strictly not exceed maxDepth (5)")
@@ -36,8 +36,8 @@ final class PerformanceAndAsyncTests: XCTestCase {
         await Task.detached {
             // Perform simulated heavy work
             try? await Task.sleep(nanoseconds: 10_000_000)
-            router.send { r in
-                r.push(.step(100))
+            router.send { targetRouter in
+                targetRouter.push(.step(100))
             }
         }.value
 
