@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: SwiftLint
+    runs-on: macos-15
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run SwiftLint
+        run: swiftlint --strict --quiet
+
+  test-macos:
+    name: macOS Tests (Swift ${{ matrix.swift }})
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        swift: ['6.0']
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Tests
+        run: swift test --enable-code-coverage -v
+
+  test-ios:
+    name: iOS Simulator Tests
+    runs-on: macos-15
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run xcodebuild test
+        run: |
+          xcodebuild test \
+            -scheme BaseNavigationStack \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO
