@@ -16,7 +16,7 @@ jobs:
     runs-on: macos-15
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install SwiftLint
         run: |
@@ -35,7 +35,7 @@ jobs:
         swift: ['6.0']
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run Tests
         run: swift test --enable-code-coverage -v
@@ -45,7 +45,7 @@ jobs:
     runs-on: macos-15
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run iOS Simulator Tests
         run: |
