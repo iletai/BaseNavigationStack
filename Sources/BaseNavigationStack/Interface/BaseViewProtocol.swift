@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-public protocol BaseViewProtocol: Identifiable, Hashable {
+public protocol BaseViewProtocol: Identifiable, Hashable, Sendable {
     associatedtype PresentSheetScreenView: View
     associatedtype DestinationView: View
     associatedtype PresentFullScreenView: View
@@ -17,6 +17,7 @@ public protocol BaseViewProtocol: Identifiable, Hashable {
     @ViewBuilder
     func withSheetDestination() -> PresentSheetScreenView
 
+    @MainActor
     @ViewBuilder
     func withFullScreenDestination() -> PresentFullScreenView
 

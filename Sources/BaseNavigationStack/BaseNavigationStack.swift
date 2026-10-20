@@ -5,13 +5,14 @@ import SwiftUI
 import Foundation
 import Observation
 
+@MainActor
 @Observable
 /// Base Navigation Stack With Generic Type.
-public class BaseNavigationStack<ScreenView> where ScreenView: BaseViewProtocol {
+public final class BaseNavigationStack<ScreenView>: @unchecked Sendable where ScreenView: BaseViewProtocol {
     private(set) var state: RootingState
-    public var urlHandler: ((URL) -> OpenURLAction.Result)?
+    public var urlHandler: (@MainActor (URL) -> OpenURLAction.Result)?
 
-    public init(isPresented: Binding<ScreenView?>) {
+    public init(isPresented: Binding<ScreenView?> = .constant(nil)) {
         state = RootingState(
             isPresented: isPresented
         )
@@ -21,47 +22,47 @@ public class BaseNavigationStack<ScreenView> where ScreenView: BaseViewProtocol 
 public extension BaseNavigationStack {
     /// According navigation full screen flow of Apple
     /// https://developer.apple.com/design/human-interface-guidelines/going-full-screen
-    /// We Will Only Support Case Full Screen To Target Last View Embed In Navigation Stack
-    /// So If View Is Presenting SomeView. Must Dismiss. If Want To Navigation To Another View But Also Keep Current.
-    /// Please Embed Target View In Owner Navigation Stack Different
     /// Navigation Stack Push To View
     /// - Parameter viewSpec: Push View
     @MainActor
     func pushToView(_ viewSpec: ScreenView) {
-        state.navigationPath.append(viewSpec)
+        // Debounce: prevent duplicate immediate pushes of the exact same target
+        if state.navigationPath.last != viewSpec {
+            state.navigationPath.append(viewSpec)
+        }
     }
-    
+
     /// Pop To Back Previous View In Navigation Stack
     @MainActor
     func popBack() {
         state.navigationPath.removeLastSafe()
     }
-    
+
     /// Pop To Root View Init In Navigation Stack
     @MainActor
     func navigateToRoot() {
-        if state.isPresenting {
-            state.presentingFullScreen = nil
-            state.presentingSheet = nil
-        }
-        state.navigationPath.removeAllSafe()
+        state.presentingFullScreen = nil
+        state.presentingSheet = nil
+        state.navigationPath.removeAll()
     }
-    
+
     /// Change Base Navigation Stack
     /// - Parameter path: Replace With Another Navigation Path
     @MainActor
     func replaceNavigationStack(path: [ScreenView]) {
+        state.presentingFullScreen = nil
+        state.presentingSheet = nil
         state.navigationPath = path
     }
 
-    /// Present Sheet With Define Type<F> View
+    /// Present Sheet With Define Type View
     /// - Parameter viewSpec: present Sheet View
     @MainActor
     func presentSheet(_ viewSpec: ScreenView) {
         state.presentingSheet = viewSpec
     }
 
-    /// Full Screen View In Bas Navigation Stack
+    /// Full Screen View In Base Navigation Stack
     /// - Parameter viewSpec: PushViewTarget
     @MainActor
     func presentFullScreen(_ viewSpec: ScreenView) {
@@ -75,15 +76,15 @@ public extension BaseNavigationStack {
             state.presentingSheet = nil
         } else if state.presentingFullScreen != nil {
             state.presentingFullScreen = nil
-        } else if navigationPath.count > 1 {
+        } else if !state.navigationPath.isEmpty {
             state.navigationPath.removeLast()
         } else {
             state.isPresented.wrappedValue = nil
         }
     }
 
-    public func handleOpenURL(url: URL) -> OpenURLAction.Result {
-        // TODO: Update URL Handler
+    @MainActor
+    func handleOpenURL(url: URL) -> OpenURLAction.Result {
         return urlHandler?(url) ?? .systemAction
     }
 }
@@ -92,15 +93,15 @@ public extension BaseNavigationStack {
     var navigationPath: Binding<[ScreenView]> {
         binding(keyPath: \.navigationPath)
     }
-    
+
     var presentingSheet: Binding<ScreenView?> {
         binding(keyPath: \.presentingSheet)
     }
-    
+
     var presentingFullScreen: Binding<ScreenView?> {
         binding(keyPath: \.presentingFullScreen)
     }
-    
+
     var isPresented: Binding<ScreenView?> {
         state.isPresented
     }

@@ -8,19 +8,14 @@
 import Foundation
 
 extension Collection {
-    subscript (safe index: Index) -> Element? {
+    public subscript (safe index: Index) -> Element? {
         indices.contains(index) ? self[index] : nil
     }
 }
 
 extension Array {
-    mutating func removeLastSafe() {
+    public mutating func removeLastSafe() {
         guard !isEmpty else { return }
         removeLast()
-    }
-
-    mutating func removeAllSafe() {
-        guard !isEmpty else { return }
-        removeAll()
     }
 }
