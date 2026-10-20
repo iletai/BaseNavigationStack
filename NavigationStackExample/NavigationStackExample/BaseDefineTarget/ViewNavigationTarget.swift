@@ -9,6 +9,9 @@ import Foundation
 import BaseNavigationStack
 import SwiftUI
 
+/// Legacy v1 router alias used by the original demo views (ListView, PolicyView, BaseView).
+public typealias BaseNavigation = BaseNavigationStack<ViewNavigationTarget>
+
 public enum ViewNavigationTarget: BaseViewProtocol {
     case splash
     case main
