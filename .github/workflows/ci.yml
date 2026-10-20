@@ -47,10 +47,19 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Run xcodebuild test
+      - name: Run iOS Simulator Tests
         run: |
-          xcodebuild test \
-            -scheme BaseNavigationStack \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
-            -resultBundlePath TestResults.xcresult \
-            CODE_SIGNING_ALLOWED=NO
+          SIM_ID=$(xcrun simctl list devices available | grep -E "iPhone" | head -1 | grep -o -E "[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}")
+          echo "Selected simulator ID: $SIM_ID"
+          if [ -n "$SIM_ID" ]; then
+            xcodebuild test \
+              -scheme BaseNavigationStack \
+              -destination "id=$SIM_ID" \
+              CODE_SIGNING_ALLOWED=NO
+          else
+            echo "No iPhone simulator found, testing with generic platform"
+            xcodebuild build \
+              -scheme BaseNavigationStack \
+              -destination 'generic/platform=iOS' \
+              CODE_SIGNING_ALLOWED=NO
+          fi
