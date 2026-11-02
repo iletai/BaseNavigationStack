@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org).
 
-## [2.0.0] - Unreleased
+## [Unreleased]
 
 ### Added
 - `NavigationRouter<Route, Sheet, Cover>`: one `@MainActor @Observable` router for stack, sheet, and cover.
@@ -29,3 +29,6 @@ All notable changes to this project are documented here. Format follows [Keep a 
 ## [1.0.3] - 2023-12-24
 
 Last 1.x release (`BaseNavigationStack<ScreenView>` + `BaseViewProtocol`).
+
+[Unreleased]: https://github.com/iletai/BaseNavigationStack/compare/1.0.3...develop
+[1.0.3]: https://github.com/iletai/BaseNavigationStack/releases/tag/1.0.3
