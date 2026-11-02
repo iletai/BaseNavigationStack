@@ -17,10 +17,10 @@ v1 bound navigation logic to each screen (`BaseViewProtocol`). v2 splits **state
 | `replaceNavigationStack(path:)` | `replacePath(_:)` |
 | `presentSheet(_:)` | `present(sheet:)` |
 | `presentFullScreen(_:)` | `present(cover:)` |
-| `dismiss()` | `dismiss()` (same ladder) |
+| `dismiss()` | `dismiss()` — same sheet → cover → pop ladder, without v1's final `isPresented = nil` step. Close a presented flow from the parent router instead. |
 | `navigationPath` binding | `router.path` (`$router.path` via `@Bindable`) |
 | `presentingSheet`, `presentingFullScreen` | `router.sheet`, `router.cover` |
-| `urlHandler` | `onOpenURL` / `handleOpenURL` equivalent mapping to `replacePath` |
+| `urlHandler` / `handleOpenURL(url:)` | No router hook in v2: parse the URL yourself in `.onOpenURL` and call `replacePath(_:)`. See [[Deep-Linking-and-URL-Handling]]. |
 
 ## Before (v1)
 
@@ -126,12 +126,19 @@ struct HomeView: View {
 
 | Behavior | v1 | v2 |
 |---|---|---|
-| `dismiss()` on a 1-item stack | buggy/none in old builds | pops it |
-| Duplicate push | debounced | debounced (same) |
-| Stack cap | none | `maxDepth = 30` by default |
-| `replacePath` | did not clear modals in old builds | clears sheet + cover |
+| `dismiss()` on a 1-item stack | no-op in 1.0.x (required 2+ items) | pops it |
+| Duplicate push | ignored silently | ignored; `push` returns `false` |
+| Stack cap | none | `maxDepth = 30` by default; rejected pushes return `false` |
+| `replacePath` | did not clear modals in 1.0.x | clears sheet + cover |
 | Modal types | one `ScreenView` type | independent `Sheet` and `Cover` types |
-| macOS full screen cover | manual | compiled out |
+| macOS full screen cover | manual | presented as a sheet |
+| Sheet while a cover is up | allowed (SwiftUI cannot show both) | `present(sheet:)` rejected, returns `false` (and vice versa) |
+
+## Breaking changes in 2.0 (even if you stay on v1 APIs)
+
+- `swift-tools-version: 6.0` — requires Xcode 16+.
+- Minimum platforms raised to iOS 17 / macOS 14 / tvOS 17 / watchOS 10 / visionOS 1 (needed for `@Observable`).
+- Public `Collection.subscript(safe:)` and `Array.removeLastSafe()` removed. Use `indices.contains(i) ? c[i] : nil` and `popLast()`.
 
 ## Using v2 without migrating everything
 

@@ -1,6 +1,6 @@
 # Swift 6 Concurrency
 
-Package is built with `swift-tools-version: 6.0` and `.enableUpcomingFeature("StrictConcurrency")`.
+Package is built with `swift-tools-version: 6.0`, which compiles in the Swift 6 language mode (complete strict concurrency checking) by default. No extra flags are needed.
 
 ## `@MainActor` isolation
 
@@ -9,7 +9,7 @@ Package is built with `swift-tools-version: 6.0` and `.enableUpcomingFeature("St
 ```swift
 @MainActor
 @Observable
-public final class NavigationRouter<Route: Hashable & Sendable, ...>: @unchecked Sendable
+public final class NavigationRouter<Route: Hashable & Sendable, ...>
 ```
 
 Consequences:
@@ -32,9 +32,10 @@ final class NavigationRouterTests: XCTestCase {
 ## `send(_:)` — crossing actor boundaries
 
 ```swift
+@discardableResult
 nonisolated public func send(
     _ action: @escaping @MainActor (NavigationRouter) -> Void
-) {
+) -> Task<Void, Never> {
     Task { @MainActor in
         action(self)
     }
@@ -43,7 +44,8 @@ nonisolated public func send(
 
 - `send` is `nonisolated` → callable from any actor/Task.
 - The closure is `@MainActor`-typed → runs isolated on main after the hop.
-- The class declares `@unchecked Sendable`: safety relies on main-actor isolation of all stored state (the standard `@MainActor` class pattern). Do not add non-isolated mutable storage.
+- `@MainActor` classes are implicitly `Sendable`, so capturing `router` in a detached task is checked by the compiler — no `@unchecked` escape hatch.
+- The mutation runs asynchronously. Separate `send` calls are not guaranteed to run in call order; `await router.send { ... }.value` when ordering matters.
 
 ```swift
 Task.detached {
@@ -90,18 +92,13 @@ case user(id: UUID)
 
 1. Single writer domain: main actor only; no locks, no queues.
 2. Rapid-tap race: `push` compares `path.last` — duplicate collapses (debounce).
-3. Background dispatch race: `send` serializes onto main actor.
+3. Background dispatch race: `send` hops onto the main actor; await the returned task to order calls.
 4. Runaway stack: `maxDepth` caps depth at push time.
-5. Empty-stack ops: `pop()`, `pop(count:)`, `removeLastSafe()` are no-ops, never traps.
+5. Empty-stack ops: `pop()`, `pop(count:)`, `dismiss()` are no-ops, never traps.
+6. Invalid configuration: `maxDepth` is clamped to `>= 1` on every assignment.
 
 ## Build flags reference
 
-`Package.swift`:
+`Package.swift` uses `swift-tools-version: 6.0` with no extra `swiftSettings`; the Swift 6 language mode already enables complete concurrency checking.
 
-```swift
-swiftSettings: [
-    .enableUpcomingFeature("StrictConcurrency")
-]
-```
-
-App targets using Swift 6 language mode should set `SWIFT_STRICT_CONCURRENCY = complete` in build settings to match.
+App targets should set `SWIFT_VERSION = 6.0` (the example app does). Apps still on Swift 5 mode can use the package, but get weaker checking in their own code.

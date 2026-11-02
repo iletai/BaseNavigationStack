@@ -83,34 +83,26 @@ struct NoCover: Identifiable, Hashable, Sendable { let id = UUID() }
 typealias AppRouter = NavigationRouter<AppRoute, NoSheet, NoCover>
 ```
 
-## Conditional compilation
+## Platform behavior
 
-`fullScreenCover` does not exist on macOS. The container branches at compile time:
+`fullScreenCover` does not exist on macOS. The container (and the `.navigationRouter` modifier it uses) presents the cover through a single internal helper:
 
 ```swift
-#if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
 NavigationStack(path: $router.path) {
     content()
-        .navigationDestination(for: Route.self) { destination($0) }
-        .sheet(item: $router.sheet) { sheetContent($0) }
-        .fullScreenCover(item: $router.cover) { coverContent($0) }
+        .navigationRouter(router, destination: destination, sheet: sheetContent, cover: coverContent)
 }
 .environment(router)
+
+// inside .navigationRouter:
+#if os(macOS)
+sheet(item: $router.cover, content: coverContent)
 #else
-NavigationStack(path: $router.path) {
-    content()
-        .navigationDestination(for: Route.self) { destination($0) }
-        .sheet(item: $router.sheet) { sheetContent($0) }
-}
-.environment(router)
+fullScreenCover(item: $router.cover, content: coverContent)
 #endif
 ```
 
-On macOS:
-
-- `cover` state is still tracked by the router but never rendered. Guard UI that assumes a cover is visible.
-- `.sheet(item:)` exists on macOS and works normally.
-- Your `cover:` closure still compiles; keep it platform-neutral.
+On macOS the `cover:` closure is shown as a sheet, so `present(cover:)` is always visible and `dismiss()` closes what the user sees.
 
 ## Behavior notes
 

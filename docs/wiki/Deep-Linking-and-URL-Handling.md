@@ -28,11 +28,21 @@ enum AppRoute: Hashable, Sendable {
 }
 
 struct AppDeepLink {
-    static func routes(from url: URL) -> [AppRoute] {
-        guard url.scheme == "myapp" || url.host == "example.com" else {
+    /// Path segments for both `myapp://detail/42` (first segment is the URL host)
+    /// and `https://example.com/detail/42`.
+    static func segments(from url: URL) -> [String] {
+        switch url.scheme {
+        case "myapp":
+            return ([url.host].compactMap { $0 } + url.pathComponents).filter { $0 != "/" && !$0.isEmpty }
+        case "https" where url.host == "example.com":
+            return url.pathComponents.filter { $0 != "/" }
+        default:
             return []
         }
-        let parts = url.pathComponents.filter { $0 != "/" }
+    }
+
+    static func routes(from url: URL) -> [AppRoute] {
+        let parts = segments(from: url)
         switch parts.first {
         case "home":
             return [.home]
@@ -48,7 +58,9 @@ struct AppDeepLink {
 }
 ```
 
-`myapp://detail/42` → `[.home, .detail(id: 42)]`.
+`myapp://detail/42`, `myapp:///detail/42` and `https://example.com/detail/42` → `[.home, .detail(id: 42)]`.
+
+> With a custom scheme, `myapp://detail/42` puts `detail` in `url.host`, not in `pathComponents`. Parsing only `pathComponents` silently returns `[]`.
 
 ## 3. Apply on launch and on open
 
@@ -59,6 +71,7 @@ struct MyApp: App {
 
     var body: some Scene {
         WindowGroup {
+            // This RootView receives the router instead of owning it with @State
             RootView(router: router)
                 .onOpenURL { url in
                     let routes = AppDeepLink.routes(from: url)
@@ -75,7 +88,7 @@ struct MyApp: App {
 }
 ```
 
-`replacePath` clears any active sheet/cover and truncates to `maxDepth` — the correct semantic for "jump to this destination".
+`replacePath` clears any active sheet/cover and truncates to `maxDepth` (returning `false` when it truncates) — the correct semantic for "jump to this destination".
 
 Prefer **pushing incrementally** (`push` per segment) when intermediate screens must appear in the back stack history; both work — `replacePath` is all-or-nothing, repeated `push` builds the history (watch duplicate-top debounce when a segment repeats).
 
@@ -83,7 +96,7 @@ Prefer **pushing incrementally** (`push` per segment) when intermediate screens 
 
 ```swift
 static func apply(url: URL, router: AppRouter) {
-    switch url.pathComponents.filter({ $0 != "/" }).first {
+    switch segments(from: url).first {
     case "paywall":
         router.present(sheet: AppSheet(id: "paywall"))
     default:
@@ -97,11 +110,13 @@ static func apply(url: URL, router: AppRouter) {
 v1 `BaseNavigationStack` exposes a handler hook:
 
 ```swift
-typealias BaseNavigation = BaseNavigationStack<ViewNavigationTarget>
+// `AppScreen` is your own type conforming to `BaseViewProtocol`
+typealias BaseNavigation = BaseNavigationStack<AppScreen>
 
 let nav = BaseNavigation()
-nav.urlHandler = { url in
-    nav.pushToView(.policy(url))
+// `urlHandler` is stored strongly: capture the owner weakly to avoid a retain cycle
+nav.urlHandler = { [weak nav] url in
+    nav?.pushToView(.policy(url))
     return .handled
 }
 
