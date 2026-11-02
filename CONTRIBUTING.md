@@ -23,8 +23,10 @@ The project uses Git Flow:
    ```bash
    swift test
    swiftlint --strict
+   scripts/check-binary-size.sh        # library must add < 80 KB to a release app
    ```
-5. CI must pass (macOS, iOS Simulator, tvOS, watchOS, visionOS, example app, SwiftLint).
+   Changes that affect rendering should also pass the example UI tests (scheme `NavigationStackExample`, target `NavigationStackExampleUITests`); each step attaches a screenshot to the result bundle.
+5. CI must pass (macOS, iOS Simulator, tvOS, watchOS, visionOS, example app build and UI tests, binary size, SwiftLint).
 
 ## Versioning
 

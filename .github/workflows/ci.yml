@@ -112,3 +112,61 @@ jobs:
             -scheme NavigationStackExample \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO
+
+  ui-tests-example:
+    name: Example UI Tests
+    runs-on: macos-26
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Run UI Tests On Newest iOS Simulator
+        run: |
+          SIM_ID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          runtimes = sorted((k for k in devices if ".iOS-" in k), key=lambda k: [int(x) for x in k.split(".iOS-")[1].split("-")])
+          for runtime in reversed(runtimes):
+              phones = [d["udid"] for d in devices[runtime] if d["name"].startswith("iPhone")]
+              if phones:
+                  print(phones[0])
+                  break
+          ')
+          if [ -z "$SIM_ID" ]; then
+            echo "::error::No iPhone simulator available"
+            exit 1
+          fi
+          xcodebuild test \
+            -project NavigationStackExample/NavigationStackExample.xcodeproj \
+            -scheme NavigationStackExample \
+            -destination "id=$SIM_ID" \
+            -resultBundlePath UITests.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload Result Bundle (screenshots)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: example-ui-tests-xcresult
+          path: UITests.xcresult
+          if-no-files-found: ignore
+
+  binary-size:
+    name: Binary Size
+    runs-on: macos-26
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Check Library Binary Size Budget
+        run: scripts/check-binary-size.sh 80000

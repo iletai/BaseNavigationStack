@@ -273,8 +273,6 @@ struct CustomRootView: View {
                     cover: { cover in CoverView(cover: cover) }
                 )
         }
-        // Also inject on the stack so pushed destinations can read the router
-        .environment(router)
     }
 }
 ```

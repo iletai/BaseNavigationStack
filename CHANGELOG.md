@@ -4,6 +4,12 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed
+- `View.navigationRouter(...)` on a hand-built `NavigationStack`: pushed destinations crashed when reading the router from `@Environment`, because `.environment(router)` was applied inside the stack. The router is now injected into every pushed destination (sheets and covers already inherited it). `BaseNavigationContainer` was not affected.
+
+### Added
+- Example app UI tests (`NavigationStackExampleUITests`) covering push/pop, nested sheet stack, full screen cover, background `send`, the modifier recipe (pushed screen and sheet), duplicate-push guard, `maxDepth` truncation, and sheet rejection while a cover is shown. CI runs them and attaches screenshots to the result bundle.
+
 ## [2.0.0] - 2026-11-02
 
 ### Added
