@@ -358,23 +358,18 @@ xcodebuild test -scheme BaseNavigationStack -destination "id=$SIM_ID" CODE_SIGNI
 
 ## Docs & Wiki
 
-- **Design Specs:** [`docs/superpowers/specs/`](docs/superpowers/specs/) — Container, async ergonomics, performance goals.
-- **Implementation Plans:** [`docs/superpowers/plans/`](docs/superpowers/plans/) — Step-by-step rollout notes.
 - **GitHub Wiki:** [BaseNavigationStack Wiki](https://github.com/iletai/BaseNavigationStack/wiki) — Extended guides, migration notes, and FAQs (if enabled).
 - **Issues:** [Report bugs / request features](https://github.com/iletai/BaseNavigationStack/issues)
 - **Discussions:** [Community Q&A](https://github.com/iletai/BaseNavigationStack/discussions)
 
 ## Contributing
 
-Contributions are welcome!
+Contributions are welcome. Pull requests target `develop`; releases are cut from `release/x.y.z` branches into `main` and tagged there.
 
-1. **Fork** the repo and create a feature branch off `develop`.
-2. **Follow style** — Match existing Swift style; CI runs `swiftlint --strict`.
-3. **Test** — Add/update tests for behavior changes. Run `swift test` locally.
-4. **Commit** — Use clear, conventional commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`).
-5. **Open a PR** — Target `develop` with a concise description and test notes.
-
-See [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md) and [`.github/ISSUE_TEMPLATE/`](.github/ISSUE_TEMPLATE/) for details.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — branch model, commit style, local checks, release process.
+- [CHANGELOG.md](CHANGELOG.md) — version history.
+- [SECURITY.md](SECURITY.md) — report vulnerabilities privately.
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 
 ## License
 
