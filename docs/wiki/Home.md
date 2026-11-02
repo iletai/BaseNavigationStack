@@ -1,6 +1,6 @@
 # BaseNavigationStack 2.0
 
-Modern, type-safe, data-driven navigation for SwiftUI (iOS 17+ / macOS 14+, Swift 6).
+Modern, type-safe, data-driven navigation for SwiftUI (iOS 17+ / macOS 14+ / tvOS 17+ / watchOS 10+ / visionOS 1+, Swift 6).
 
 `BaseNavigationStack` unifies Stack pushes, Sheets, and FullScreenCovers under a single `@MainActor @Observable` router — no fragmented `@State`, no external dependencies.
 
@@ -8,9 +8,9 @@ Modern, type-safe, data-driven navigation for SwiftUI (iOS 17+ / macOS 14+, Swif
 
 - **Single source of truth** — one router owns `path`, `sheet`, `cover`.
 - **Zero dependencies** — pure SwiftUI + Observation, nothing else in `Package.swift`.
-- **Strict Concurrency** — Swift 6 with `StrictConcurrency` upcoming feature; router is `@MainActor` isolated and `Sendable`.
+- **Strict Concurrency** — Swift 6 language mode; router is `@MainActor` isolated (and therefore `Sendable`).
 - **O(1)-style mutations** — stack state is a plain `[Route]` array; duplicate push is one equality check against `path.last`, pops are bounded with `min(count, path.count)`. Unit-testable with zero UI test overhead.
-- **Race-condition guard** — rapid identical taps collapse into one push (debounce), `maxDepth` caps stack growth.
+- **Race-condition guard** — rapid identical taps collapse into one push, `maxDepth` caps stack growth; rejected operations return `false` and log.
 - **Nested ready** — independent routers per Tab and per modal.
 
 ## Design philosophy

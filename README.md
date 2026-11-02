@@ -13,7 +13,7 @@
 
 [Features](#features) • [Quickstart](#quickstart) • [Architecture](#architecture) • [API Cheat Sheet](#api-cheat-sheet) • [Advanced Recipes](#advanced-recipes) • [Example App](#example-app) • [Docs & Wiki](#docs--wiki) • [Contributing](#contributing) • [License](#license)
 
-<sub>Minimums declared in `Package.swift`: iOS 17+, macOS 14+. tvOS / watchOS / visionOS compile via conditional code paths (full screen cover applied only where supported).</sub>
+<sub>Minimums declared in `Package.swift`: iOS 17+, macOS 14+, tvOS 17+, watchOS 10+, visionOS 1+. macOS has no full screen cover, so covers are presented as sheets there.</sub>
 
 </div>
 
@@ -64,12 +64,12 @@ SwiftUI's built-in navigation is powerful, but state tends to sprawl across view
 - **Swift 6 Strict Concurrency** — Fully `@MainActor`, `Sendable`-compliant, ready for complete concurrency checking.
 - **Zero External Dependencies** — Built on native SwiftUI, `Observation`, and Foundation only.
 - **Unified Multi-Modal Routing** — Manage stack, sheet, and full screen cover from one `@Observable` router.
-- **Auto-Debounce Rapid Taps** — Prevents duplicate pushes when the same route hits back-to-back.
-- **Stack Depth Protection** — `maxDepth` guard (default `30`) helps avoid layout recursion/memory pressure.
+- **Duplicate-Top Guard** — Ignores a push equal to the current top route (double taps). `push` returns `false` when it rejects.
+- **Stack Depth Protection** — `maxDepth` guard (default `30`, always `>= 1`) helps avoid layout recursion/memory pressure. Rejections are reported via return value and `os.Logger`.
 - **Actor-Safe Navigation** — `send(_:)` lets you dispatch navigation safely from `Task.detached`, background actors, or async callbacks.
 - **Nested & Tabbed Navigation** — Spin up isolated routers per tab or inside sheets for independent flows.
 - **Headless Unit-Testable** — Mutate router state directly in tests; assert on `[Route]`, modals, and transitions.
-- **Cross-Platform Aware** — Works across iOS 17+, macOS 14+, tvOS 17+, watchOS 10+, visionOS 1+. Full-screen covers are applied on platforms that support them.
+- **Cross-Platform Aware** — Works across iOS 17+, macOS 14+, tvOS 17+, watchOS 10+, visionOS 1+. On macOS, covers fall back to sheets.
 - **Backward Compatible (v1.x)** — `BaseNavigationStack<ScreenView>` remains supported with fixes for `dismiss()`, `replaceNavigationStack(path:)`, and `@Bindable` compatibility.
 
 ## Quickstart
@@ -146,6 +146,8 @@ struct RootView: View {
 }
 ```
 
+> Own the router with `@State` (or a long-lived model). Creating `NavigationRouter()` inline in `body` recreates it on every render and loses the stack.
+
 > **Already have a `NavigationStack`?** Use the modifier instead: `.navigationRouter(router, destination:sheet:cover:)` to attach routing to your existing hierarchy. See [Advanced Recipes](#advanced-recipes).
 
 ### 4) Navigate from anywhere
@@ -210,7 +212,15 @@ struct FlowSheetView: View {
     var body: some View {
         BaseNavigationContainer(
             router: subRouter,
-            content: { SheetStartView() },
+            content: {
+                // Toolbar must live inside the stack's content to show up
+                SheetStartView()
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") { parentRouter.dismiss() }
+                        }
+                    }
+            },
             destination: { route in
                 switch route {
                 case .detail(let id): SheetDetailView(id: id)
@@ -218,34 +228,31 @@ struct FlowSheetView: View {
                 }
             }
         )
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Done") { parentRouter.dismiss() }
-            }
-        }
     }
 }
 ```
+
+> `parentRouter` is read *outside* the container on purpose: inside it, `@Environment(AppRouter.self)` resolves to `subRouter` because both share the same type.
 
 ### Deep Linking / Async Navigation
 
 Use `send(_:)` to navigate safely from async work or background actors.
 
 ```swift
-func handleDeepLink(_ url: URL) async {
+func handleDeepLink(_ url: URL, router: AppRouter) async {
     // Parse route from URL...
     let route = AppRoute.detail(id: 123)
 
-    await MainActor.run {
-        router.push(route)
-    }
+    // Router is @MainActor: awaiting the call hops to the main actor
+    await router.push(route)
 
     // Or from a detached task/actor:
     Task.detached {
-        router.send { r in
+        // `send` is asynchronous; await the returned task when ordering matters
+        await router.send { r in
             r.popToRoot()
             r.push(.profile(userID: "u_123"))
-        }
+        }.value
     }
 }
 ```
@@ -266,6 +273,8 @@ struct CustomRootView: View {
                     cover: { cover in CoverView(cover: cover) }
                 )
         }
+        // Also inject on the stack so pushed destinations can read the router
+        .environment(router)
     }
 }
 ```
@@ -280,17 +289,17 @@ struct CustomRootView: View {
 | `path` | `[Route]` | Active navigation stack. Bind to `NavigationStack(path:)`. | O(1) access |
 | `sheet` | `Sheet?` | Currently presented sheet. | O(1) |
 | `cover` | `Cover?` | Currently presented full screen cover. | O(1) |
-| `maxDepth` | `Int` | Maximum allowed stack depth. `push` is a no-op if `path.count >= maxDepth`. | O(1) |
-| `push(_:)` | `func(Route)` | Push route if different from last and under `maxDepth` (auto-debounce). | O(1) |
+| `maxDepth` | `Int` | Maximum allowed stack depth, clamped to `>= 1` on every assignment. `push` is rejected if `path.count >= maxDepth`. | O(1) |
+| `push(_:)` | `func(Route) -> Bool` | Push route if different from last and under `maxDepth`. Returns `false` (and logs) when rejected. | O(1) |
 | `pop()` | `func()` | Pop top route if exists. | O(1) |
 | `pop(count:)` | `func(Int)` | Safely pop up to `count` routes. | O(k), k = removed |
 | `popToRoot()` | `func()` | Clear path and dismiss all modals. | O(n) path clear |
-| `replacePath(_:)` | `func([Route])` | Replace stack with new path (truncated to `maxDepth`), clears modals. | O(n) |
-| `present(sheet:)` | `func(Sheet)` | Present a sheet. | O(1) |
-| `present(cover:)` | `func(Cover)` | Present a full screen cover. | O(1) |
+| `replacePath(_:)` | `func([Route]) -> Bool` | Replace stack with new path, clears modals. Returns `false` if truncated to `maxDepth`. | O(n) |
+| `present(sheet:)` | `func(Sheet) -> Bool` | Present a sheet. Rejected (`false`) while a cover is presented. | O(1) |
+| `present(cover:)` | `func(Cover) -> Bool` | Present a full screen cover (sheet on macOS). Rejected (`false`) while a sheet is presented. | O(1) |
 | `dismiss()` | `func()` | Dismiss ladder: sheet → cover → pop top route. No-op on empty stack. | O(1) |
 | `dismissModals()` | `func()` | Clear sheet/cover without touching stack. | O(1) |
-| `send(_:)` | `nonisolated func(@MainActor (NavigationRouter) -> Void)` | Dispatch navigation from any actor/context via `Task { @MainActor in ... }`. | O(1) dispatch |
+| `send(_:)` | `nonisolated func(@MainActor (NavigationRouter) -> Void) -> Task<Void, Never>` | Dispatch navigation from any actor/context. Runs asynchronously; await the returned task for ordering. | O(1) dispatch |
 
 ### `BaseNavigationContainer`
 
@@ -311,7 +320,7 @@ struct CustomRootView: View {
 | Method | Notes |
 | --- | --- |
 | `pushToView(_:)` | Debounced push with duplicate prevention. |
-| `popBack()` | Safe pop via `removeLastSafe()`. |
+| `popBack()` | Safe pop; no-op on empty stack. |
 | `navigateToRoot()` | Clears modals and stack. |
 | `replaceNavigationStack(path:)` | Replaces path and clears modals. |
 | `presentSheet(_:)` / `presentFullScreen(_:)` | Modal presentation. |

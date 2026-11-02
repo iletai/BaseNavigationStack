@@ -63,6 +63,16 @@ Switching tabs does not reset stacks — `@State` keeps both alive in the host v
 A modal can host a fully isolated sub-stack. The child router lives inside the sheet view; the parent only knows "sheet is open":
 
 ```swift
+// Parent router types
+struct DemoSheet: Identifiable, Hashable, Sendable {
+    let id: String
+    let title: String
+}
+struct DemoCover: Identifiable, Hashable, Sendable { let id: String }
+enum DemoRoute: Hashable, Sendable { case detail(id: Int) }
+typealias DemoRouter = NavigationRouter<DemoRoute, DemoSheet, DemoCover>
+
+// Child router types
 enum SubModalRoute: Hashable, Sendable {
     case subDetail
 }
@@ -101,10 +111,12 @@ Rules of thumb:
 - **Close the modal** → parent `parentRouter.dismiss()`.
 - Parent stack is untouched while the child stack grows — `dismissModals()` on the parent closes the sheet and discards child state.
 - Child routes must not reference parent routes; keep enums separate.
+- If the child router has the **same type** as the parent, `@Environment(ParentRouter.self)` inside the child container resolves to the child. Read the parent router outside the child container (as above), or give the child its own route types.
+- A presented cover blocks `present(sheet:)` on the same router (it returns `false`). To show a sheet from inside a cover, give the cover its own router.
 
 ## Common pitfalls
 
 1. **Creating the router inside `body`** — `let r = AppRouter()` re-instantiates every render, stack resets. Always `@State private var router = AppRouter()`.
 2. **Sharing one router across tabs** — `popToRoot` in tab A nukes tab B. One router per stack.
-3. **Presenting a cover on macOS** — compiled out of the container; see [[API-BaseNavigationContainer]].
+3. **Presenting a cover on macOS** — presented as a sheet, since macOS has no full screen cover; see [[API-BaseNavigationContainer]].
 4. **Nested `NavigationStack` on iOS 17** — legal inside `.sheet`, but never nest two stacks in the *same* column; give each its own modal boundary.

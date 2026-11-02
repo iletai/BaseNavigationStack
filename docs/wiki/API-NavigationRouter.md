@@ -6,8 +6,12 @@ public final class NavigationRouter<
     Route: Hashable & Sendable,
     Sheet: Identifiable & Hashable & Sendable,
     Cover: Identifiable & Hashable & Sendable
->: @unchecked Sendable
+>
 ```
+
+`@MainActor` classes are implicitly `Sendable`, so the router can be captured from any context (see `send(_:)`).
+
+Own the router with `@State` (or a long-lived model). Creating it inline in `body` recreates it on every render and loses the stack.
 
 Single point of truth for stack, sheet, and cover state.
 
@@ -15,10 +19,10 @@ Single point of truth for stack, sheet, and cover state.
 
 | Property | Type | Meaning |
 |---|---|---|
-| `path` | `[Route]` | Navigation stack, root-first. Bind directly with `$router.path`. |
-| `sheet` | `Sheet?` | Active sheet; drives `.sheet(item:)`. |
-| `cover` | `Cover?` | Active full screen cover; drives `.fullScreenCover(item:)`. |
-| `maxDepth` | `Int` | Stack cap. Default `30`. Initializer clamps to `max(1, maxDepth)`. |
+| `path` | `[Route]` | Navigation stack, root-first. Bind directly with `$router.path`. Writing it directly bypasses the `push` guards. |
+| `sheet` | `Sheet?` | Active sheet; drives `.sheet(item:)`. At most one of `sheet` / `cover` is set through the router API. |
+| `cover` | `Cover?` | Active full screen cover; drives `.fullScreenCover(item:)` (a sheet on macOS). |
+| `maxDepth` | `Int` | Stack cap. Default `30`. Clamped to `>= 1` in the initializer and on every assignment. Lowering it does not trim an existing `path`. |
 
 ## Initializer
 
@@ -34,7 +38,7 @@ public init(
 ```swift
 let router = NavigationRouter<AppRoute, AppSheet, AppCover>()
 let deepLink = NavigationRouter<AppRoute, AppSheet, AppCover>(
-    initialPath: [.profile, .detail(id: 7)]
+    initialPath: [.profile, .detail(id: 7)]   // truncated to maxDepth
 )
 let shallow = NavigationRouter<AppRoute, AppSheet, AppCover>(maxDepth: 5)
 ```
@@ -44,11 +48,14 @@ let shallow = NavigationRouter<AppRoute, AppSheet, AppCover>(maxDepth: 5)
 ### `push(_:)`
 
 ```swift
-public func push(_ route: Route)
+@discardableResult
+public func push(_ route: Route) -> Bool
 ```
 
-- Guards `path.count < maxDepth`; silently drops when at cap.
-- **Debounce**: if `path.last == route`, the push is ignored. Protects against double taps / repeated async dispatches producing duplicated screens.
+Returns `false` when the push is rejected, and logs the reason through `os.Logger` (subsystem `BaseNavigationStack`).
+
+- Rejected when `path.count >= maxDepth`.
+- **Duplicate-top guard**: if `path.last == route`, the push is ignored. Protects against double taps / repeated async dispatches producing duplicated screens. It is not time-based: a flow that legitimately pushes the same value twice in a row needs distinct values (e.g. include a step index).
 - Equality is the route's `Hashable`/`Equatable` conformance — for enum routes with associated values, same case + same values means duplicate.
 
 ```swift
@@ -91,10 +98,11 @@ Clears `path`, `sheet`, and `cover`. Full reset to root.
 ### `replacePath(_:)`
 
 ```swift
-public func replacePath(_ newPath: [Route])
+@discardableResult
+public func replacePath(_ newPath: [Route]) -> Bool
 ```
 
-Replaces the whole stack (e.g. auth switch, deep-link jump) and dismisses any active sheet/cover. Truncates to `maxDepth` via `prefix(maxDepth)`.
+Replaces the whole stack (e.g. auth switch, deep-link jump) and dismisses any active sheet/cover. Keeps the first `maxDepth` routes and returns `false` when it had to truncate, so a deep link longer than `maxDepth` does not land on its final screen — check the result or raise `maxDepth`.
 
 ```swift
 router.replacePath([.profile])  // sheet/cover nil, path == [.profile]
@@ -105,18 +113,20 @@ router.replacePath([.profile])  // sheet/cover nil, path == [.profile]
 ### `present(sheet:)`
 
 ```swift
-public func present(sheet: Sheet)
+@discardableResult
+public func present(sheet: Sheet) -> Bool
 ```
 
-Sets `sheet`. Setting a new value while one is presented replaces it.
+Sets `sheet`. Setting a new value while one is presented replaces it. Rejected (`false`) while a cover is presented: SwiftUI cannot present both from the same view. To show a sheet on top of a cover, give the cover its own router (see [[Nested-and-Tab-Navigation]]).
 
 ### `present(cover:)`
 
 ```swift
-public func present(cover: Cover)
+@discardableResult
+public func present(cover: Cover) -> Bool
 ```
 
-Sets `cover`. On iOS/tvOS/watchOS/visionOS rendered as `.fullScreenCover(item:)`.
+Sets `cover`. On iOS/tvOS/watchOS/visionOS rendered as `.fullScreenCover(item:)`; on macOS as a sheet. Rejected (`false`) while a sheet is presented.
 
 ### `dismiss()`
 
@@ -146,16 +156,17 @@ Clears `sheet` and `cover` without touching `path`.
 ### `send(_:)`
 
 ```swift
-nonisolated public func send(_ action: @escaping @MainActor (NavigationRouter) -> Void)
+@discardableResult
+nonisolated public func send(_ action: @escaping @MainActor (NavigationRouter) -> Void) -> Task<Void, Never>
 ```
 
-Safe entry point from non-main actors. Wraps the mutation in `Task { @MainActor in ... }`.
+Safe entry point from non-main actors. Wraps the mutation in `Task { @MainActor in ... }` and returns that task. The mutation runs asynchronously, so separate `send` calls are not guaranteed to run in call order — `await` the returned task (`await router.send { ... }.value`) when ordering matters. From code already on the main actor, call the methods directly.
 
 ```swift
 Task.detached {
     let user = try await api.fetchUser()
     router.send { r in
-        r.push(.profile(user))
+        r.push(.detail(id: user.id))
     }
 }
 ```
@@ -174,9 +185,9 @@ Task.detached {
 func testCapAndDebounce() {
     let router = NavigationRouter<AppRoute, AppSheet, AppCover>(maxDepth: 2)
     router.push(.profile)
-    router.push(.profile)          // debounced
-    router.push(.detail(id: 1))    // depth 2
-    router.push(.detail(id: 2))    // rejected by maxDepth
+    assert(router.push(.profile) == false)        // duplicate of top
+    router.push(.detail(id: 1))                   // depth 2
+    assert(router.push(.detail(id: 2)) == false)  // rejected by maxDepth
     assert(router.path == [.profile, .detail(id: 1)])
 
     router.pop(count: 10)

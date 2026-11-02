@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "BaseNavigationStack",
     platforms: [
-        .macOS(.v14), .iOS(.v17)
+        .macOS(.v14), .iOS(.v17), .tvOS(.v17), .watchOS(.v10), .visionOS(.v1)
     ],
     products: [
         .library(
@@ -16,10 +16,7 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "BaseNavigationStack",
-            swiftSettings: [
-                .enableUpcomingFeature("StrictConcurrency")
-            ]
+            name: "BaseNavigationStack"
         ),
         .testTarget(
             name: "BaseNavigationStackTests",

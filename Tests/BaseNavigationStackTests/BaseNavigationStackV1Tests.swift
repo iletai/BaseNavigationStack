@@ -39,4 +39,45 @@ final class BaseNavigationStackV1Tests: XCTestCase {
         XCTAssertNil(stack.presentingFullScreen.wrappedValue)
         XCTAssertEqual(stack.navigationPath.wrappedValue, [.second])
     }
+
+    func testLegacyPopAndRoot() {
+        let stack = BaseNavigationStack<LegacyTarget>()
+        stack.pushToView(.first)
+        stack.pushToView(.first)
+        stack.pushToView(.second)
+        XCTAssertEqual(stack.navigationPath.wrappedValue, [.first, .second])
+
+        stack.popBack()
+        XCTAssertEqual(stack.navigationPath.wrappedValue, [.first])
+
+        stack.presentSheet(.second)
+        stack.navigateToRoot()
+        XCTAssertTrue(stack.navigationPath.wrappedValue.isEmpty)
+        XCTAssertNil(stack.presentingSheet.wrappedValue)
+
+        // Empty stack pop is a no-op
+        stack.popBack()
+        XCTAssertTrue(stack.navigationPath.wrappedValue.isEmpty)
+    }
+
+    func testLegacyDismissFallsBackToParentBinding() {
+        var parentPresented: LegacyTarget? = .first
+        let binding = Binding(get: { parentPresented }, set: { parentPresented = $0 })
+        let stack = BaseNavigationStack<LegacyTarget>(isPresented: binding)
+
+        stack.dismiss()
+        XCTAssertNil(parentPresented, "Dismiss on empty stack must clear parent presentation")
+    }
+
+    func testLegacyURLHandler() {
+        let stack = BaseNavigationStack<LegacyTarget>()
+        let url = URL(string: "myapp://x")!
+        var received: URL?
+        stack.urlHandler = { url in
+            received = url
+            return .handled
+        }
+        _ = stack.handleOpenURL(url: url)
+        XCTAssertEqual(received, url)
+    }
 }

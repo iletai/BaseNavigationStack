@@ -24,18 +24,17 @@ final class ContainerViewTests: XCTestCase {
             cover: { cover in Text("Cover: \(cover.id)") }
         )
 
-        XCTAssertNotNil(container.body)
+        // Smoke test: body must build on every platform branch without trapping
+        _ = container.body
     }
 
     func testModifierApplication() {
         let router = NavigationRouter<ContainerTestRoute, ContainerTestSheet, ContainerTestSheet>()
 
-        let view = Text("Hello")
+        _ = Text("Hello")
             .navigationRouter(
                 router,
                 destination: { _ in Text("Dest") }
             )
-
-        XCTAssertNotNil(view)
     }
 }

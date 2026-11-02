@@ -8,9 +8,12 @@
 import SwiftUI
 
 public extension View {
-    /// Binds a `NavigationRouter` to the current view hierarchy for Stack, Sheet, and Cover handling.
+    /// Attaches a `NavigationRouter`'s destinations, sheet, and cover to this view, and injects the router
+    /// into the environment.
+    ///
+    /// Apply it to the root content *inside* a `NavigationStack(path: $router.path)`; this modifier does not
+    /// bind `path` itself. Use `BaseNavigationContainer` to get the stack and binding for free.
     @MainActor
-    @ViewBuilder
     func navigationRouter<
         Route: Hashable & Sendable,
         Sheet: Identifiable & Hashable & Sendable,
@@ -25,28 +28,17 @@ public extension View {
         @ViewBuilder cover: @escaping (Cover) -> CoverContent
     ) -> some View {
         @Bindable var bindableRouter = router
-        #if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
-        self
+        return self
             .navigationDestination(for: Route.self) { route in
                 destination(route)
             }
             .sheet(item: $bindableRouter.sheet) { sheetTarget in
                 sheet(sheetTarget)
             }
-            .fullScreenCover(item: $bindableRouter.cover) { coverTarget in
+            .coverPresentation(item: $bindableRouter.cover) { coverTarget in
                 cover(coverTarget)
             }
             .environment(router)
-        #else
-        self
-            .navigationDestination(for: Route.self) { route in
-                destination(route)
-            }
-            .sheet(item: $bindableRouter.sheet) { sheetTarget in
-                sheet(sheetTarget)
-            }
-            .environment(router)
-        #endif
     }
 
     /// Convenience modifier for Stack-only routing.
@@ -66,5 +58,20 @@ public extension View {
             sheet: { _ in EmptyView() },
             cover: { _ in EmptyView() }
         )
+    }
+}
+
+extension View {
+    /// `fullScreenCover` where available; macOS has no full screen cover, so it falls back to a sheet.
+    @ViewBuilder
+    func coverPresentation<Item: Identifiable, Content: View>(
+        item: Binding<Item?>,
+        @ViewBuilder content: @escaping (Item) -> Content
+    ) -> some View {
+        #if os(macOS)
+        sheet(item: item, content: content)
+        #else
+        fullScreenCover(item: item, content: content)
+        #endif
     }
 }

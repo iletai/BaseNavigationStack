@@ -15,7 +15,7 @@ targets: [
 
 Or in Xcode: **File → Add Package Dependencies…** → `https://github.com/iletai/BaseNavigationStack.git`.
 
-Platforms: iOS 17.0+, macOS 14.0+. Swift tools 6.0.
+Platforms: iOS 17.0+, macOS 14.0+, tvOS 17.0+, watchOS 10.0+, visionOS 1.0+. Swift tools 6.0 (Xcode 16+).
 
 ## 2. Define your Route enum
 
