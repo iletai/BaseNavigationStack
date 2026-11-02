@@ -258,9 +258,10 @@ struct AsyncLabView: View {
 
                 Button("Simulate Background Async Push") {
                     isLoading = true
+                    let router = labRouter
                     Task.detached {
                         try? await Task.sleep(nanoseconds: 1_000_000_000)
-                        labRouter.send { r in
+                        router.send { r in
                             isLoading = false
                             r.push(.detail(title: "Loaded from Network Actor"))
                         }
