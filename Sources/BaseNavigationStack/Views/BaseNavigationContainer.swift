@@ -38,32 +38,11 @@ public struct BaseNavigationContainer<
     }
 
     public var body: some View {
-        #if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
         NavigationStack(path: $router.path) {
             content()
-                .navigationDestination(for: Route.self) { route in
-                    destination(route)
-                }
-                .sheet(item: $router.sheet) { sheet in
-                    sheetContent(sheet)
-                }
-                .fullScreenCover(item: $router.cover) { cover in
-                    coverContent(cover)
-                }
+                .navigationRouter(router, destination: destination, sheet: sheetContent, cover: coverContent)
         }
         .environment(router)
-        #else
-        NavigationStack(path: $router.path) {
-            content()
-                .navigationDestination(for: Route.self) { route in
-                    destination(route)
-                }
-                .sheet(item: $router.sheet) { sheet in
-                    sheetContent(sheet)
-                }
-        }
-        .environment(router)
-        #endif
     }
 }
 

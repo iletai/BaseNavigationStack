@@ -58,8 +58,8 @@ final class NavigationRouterTests: XCTestCase {
 
     func testDuplicatePushDebounce() {
         let router = NavigationRouter<TestRoute, TestSheet, TestCover>()
-        router.push(.home)
-        router.push(.home) // Repeated immediate push
+        XCTAssertTrue(router.push(.home))
+        XCTAssertFalse(router.push(.home), "Repeated immediate push must report rejection")
         XCTAssertEqual(router.path.count, 1)
 
         router.push(.detail(id: 1))
@@ -94,9 +94,8 @@ final class NavigationRouterTests: XCTestCase {
         let router = NavigationRouter<TestRoute, TestSheet, TestCover>()
         router.push(.home)
         router.present(sheet: TestSheet(id: "s1"))
-        router.present(cover: TestCover(id: "c1"))
 
-        router.replacePath([.detail(id: 99)])
+        XCTAssertTrue(router.replacePath([.detail(id: 99)]))
         XCTAssertNil(router.sheet)
         XCTAssertNil(router.cover)
         XCTAssertEqual(router.path, [.detail(id: 99)])
@@ -112,5 +111,38 @@ final class NavigationRouterTests: XCTestCase {
         XCTAssertTrue(router.path.isEmpty)
         XCTAssertNil(router.sheet)
         XCTAssertNil(router.cover)
+    }
+
+    func testSheetAndCoverAreMutuallyExclusive() {
+        let router = NavigationRouter<TestRoute, TestSheet, TestCover>()
+
+        XCTAssertTrue(router.present(sheet: TestSheet(id: "s1")))
+        XCTAssertFalse(router.present(cover: TestCover(id: "c1")))
+        XCTAssertNil(router.cover)
+
+        // Swapping one sheet for another is allowed
+        XCTAssertTrue(router.present(sheet: TestSheet(id: "s2")))
+        XCTAssertEqual(router.sheet?.id, "s2")
+
+        router.dismiss()
+        XCTAssertTrue(router.present(cover: TestCover(id: "c1")))
+        XCTAssertFalse(router.present(sheet: TestSheet(id: "s3")))
+        XCTAssertNil(router.sheet)
+    }
+
+    func testInitKeepsOnlyOneModal() {
+        let router = NavigationRouter<TestRoute, TestSheet, TestCover>(
+            initialSheet: TestSheet(id: "s1"),
+            initialCover: TestCover(id: "c1")
+        )
+        XCTAssertNotNil(router.sheet)
+        XCTAssertNil(router.cover)
+    }
+
+    func testPopNonPositiveCountIsNoOp() {
+        let router = NavigationRouter<TestRoute, TestSheet, TestCover>(initialPath: [.home, .profile])
+        router.pop(count: 0)
+        router.pop(count: -3)
+        XCTAssertEqual(router.path, [.home, .profile])
     }
 }

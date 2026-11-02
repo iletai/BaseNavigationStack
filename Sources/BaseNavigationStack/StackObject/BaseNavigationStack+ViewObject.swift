@@ -23,10 +23,6 @@ extension BaseNavigationStack {
         /// Status Is Presenting A View
         var isPresented: Binding<ScreenView?>
 
-        var isPresenting: Bool {
-            return presentingSheet != nil || presentingFullScreen != nil
-        }
-        
         /// Initial
         /// - Parameter isPresented: With Router Stack Init View.
         init(isPresented: Binding<ScreenView?>) {

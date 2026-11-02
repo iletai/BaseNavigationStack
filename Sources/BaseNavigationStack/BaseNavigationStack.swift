@@ -1,6 +1,3 @@
-// The Swift Programming Language
-// https://docs.swift.org/swift-book
-
 import SwiftUI
 import Foundation
 import Observation
@@ -8,8 +5,10 @@ import Observation
 @MainActor
 @Observable
 /// Base Navigation Stack With Generic Type.
-public final class BaseNavigationStack<ScreenView>: @unchecked Sendable where ScreenView: BaseViewProtocol {
+public final class BaseNavigationStack<ScreenView> where ScreenView: BaseViewProtocol {
     private(set) var state: RootingState
+    /// Stored strongly; capture owners with `[weak self]` to avoid a retain cycle.
+    @ObservationIgnored
     public var urlHandler: (@MainActor (URL) -> OpenURLAction.Result)?
 
     public init(isPresented: Binding<ScreenView?> = .constant(nil)) {
@@ -35,7 +34,7 @@ public extension BaseNavigationStack {
     /// Pop To Back Previous View In Navigation Stack
     @MainActor
     func popBack() {
-        state.navigationPath.removeLastSafe()
+        _ = state.navigationPath.popLast()
     }
 
     /// Pop To Root View Init In Navigation Stack
