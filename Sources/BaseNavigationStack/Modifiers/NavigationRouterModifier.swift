@@ -12,7 +12,8 @@ public extension View {
     /// into the environment.
     ///
     /// Apply it to the root content *inside* a `NavigationStack(path: $router.path)`; this modifier does not
-    /// bind `path` itself. Use `BaseNavigationContainer` to get the stack and binding for free.
+    /// bind `path` itself. Pushed destinations, sheets, and covers all receive the router through the
+    /// environment. Use `BaseNavigationContainer` to get the stack and binding for free.
     @MainActor
     func navigationRouter<
         Route: Hashable & Sendable,
@@ -28,9 +29,11 @@ public extension View {
         @ViewBuilder cover: @escaping (Cover) -> CoverContent
     ) -> some View {
         @Bindable var bindableRouter = router
+        // Pushed destinations take their environment from the NavigationStack, not from this view,
+        // so the router is injected into each destination. Sheets and covers inherit it from this view.
         return self
             .navigationDestination(for: Route.self) { route in
-                destination(route)
+                destination(route).environment(router)
             }
             .sheet(item: $bindableRouter.sheet) { sheetTarget in
                 sheet(sheetTarget)

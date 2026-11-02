@@ -25,7 +25,7 @@ public extension View {
 }
 ```
 
-Attaches, in order: `.navigationDestination(for:)`, `.sheet(item:)`, `.fullScreenCover(item:)` (a second `.sheet` on macOS), and `.environment(router)`.
+Attaches, in order: `.navigationDestination(for:)`, `.sheet(item:)`, `.fullScreenCover(item:)` (a second `.sheet` on macOS), and `.environment(router)`. The router is also injected into every pushed destination: pushed screens take their environment from the `NavigationStack`, not from the view that declares `navigationDestination`, so without this they could not read `@Environment(AppRouter.self)`. Sheets and covers inherit it from the presenting view.
 
 Apply it to the content **inside** the stack — `navigationDestination` must be declared within the `NavigationStack`, not on the stack itself.
 
@@ -52,8 +52,6 @@ struct RootView: View {
                     }
                 )
         }
-        // Also inject on the stack so pushed destinations can read the router
-        .environment(router)
     }
 }
 ```

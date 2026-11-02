@@ -59,15 +59,7 @@ struct ContentView: View {
                     NestedSheetContainerView(sheet: sheet)
                 },
                 cover: { cover in
-                    VStack(spacing: 20) {
-                        Text("Full Screen Cover: \(cover.id)")
-                            .font(.largeTitle)
-                        Button("Dismiss Cover") {
-                            router.dismiss()
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding()
+                    CoverView(cover: cover)
                 }
             )
             .tabItem {
@@ -81,6 +73,13 @@ struct ContentView: View {
                     Label("Async Lab", systemImage: "bolt.horizontal")
                 }
                 .tag(1)
+
+            // Tab 3: `.navigationRouter` modifier on a hand-built NavigationStack
+            ModifierRecipeView()
+                .tabItem {
+                    Label("Modifier", systemImage: "wand.and.stars")
+                }
+                .tag(2)
         }
     }
 }
@@ -89,6 +88,7 @@ struct ContentView: View {
 
 struct StackExplorerView: View {
     @Environment(DemoRouter.self) private var router
+    @State private var lastResult = "none"
 
     var body: some View {
         VStack(spacing: 20) {
@@ -97,6 +97,10 @@ struct StackExplorerView: View {
             Text("Current Stack Depth: \(router.path.count) / \(router.maxDepth)")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .accessibilityIdentifier("depthLabel")
+            Text("Last result: \(lastResult)")
+                .font(.caption)
+                .accessibilityIdentifier("lastResult")
 
             // Breadcrumb Trail
             ScrollView(.horizontal, showsIndicators: false) {
@@ -125,9 +129,20 @@ struct StackExplorerView: View {
 
             VStack(spacing: 12) {
                 Button("Push Next Step") {
-                    router.push(.step(router.path.count + 1))
+                    lastResult = router.push(.step(router.path.count + 1)) ? "push accepted" : "push rejected"
                 }
                 .buttonStyle(.borderedProminent)
+
+                Button("Present Full Screen Cover") {
+                    router.present(cover: DemoCover(id: "cover-1"))
+                }
+                .buttonStyle(.bordered)
+
+                Button("Deep Link 35 Screens") {
+                    let routes = (1...35).map { DemoRoute.step($0) }
+                    lastResult = router.replacePath(routes) ? "deep link full" : "deep link truncated"
+                }
+                .buttonStyle(.bordered)
 
                 Button("Present Modal Sheet") {
                     router.present(sheet: DemoSheet(id: "modal-1", title: "Nested Flow Sheet"))
@@ -182,6 +197,97 @@ struct StepDetailView: View {
         }
         .padding()
         .navigationTitle("Step \(stepIndex)")
+    }
+}
+
+// MARK: - Full Screen Cover
+
+struct CoverView: View {
+    let cover: DemoCover
+    @Environment(DemoRouter.self) private var router
+    @State private var sheetAttempt = "none"
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Full Screen Cover: \(cover.id)")
+                .font(.largeTitle)
+            Text("Sheet attempt: \(sheetAttempt)")
+                .accessibilityIdentifier("sheetAttempt")
+            Button("Try Present Sheet From Same Router") {
+                sheetAttempt = router.present(sheet: DemoSheet(id: "blocked", title: "Blocked")) ? "presented" : "rejected"
+            }
+            .buttonStyle(.bordered)
+            Button("Dismiss Cover") {
+                router.dismiss()
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding()
+    }
+}
+
+// MARK: - Modifier Recipe
+
+/// Uses only `.navigationRouter` inside a hand-built stack, without injecting the router
+/// on the stack itself, to check that pushed destinations still receive it.
+struct ModifierRecipeView: View {
+    @State private var modifierRouter = DemoRouter()
+
+    var body: some View {
+        NavigationStack(path: $modifierRouter.path) {
+            VStack(spacing: 16) {
+                Button("Push Via Modifier") {
+                    modifierRouter.push(.step(1))
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button("Present Sheet Via Modifier") {
+                    modifierRouter.present(sheet: DemoSheet(id: "modifier-sheet", title: "Modifier Sheet"))
+                }
+                .buttonStyle(.bordered)
+            }
+            .navigationTitle("Modifier")
+            .navigationRouter(
+                modifierRouter,
+                destination: { route in ModifierDestinationView(route: route) },
+                sheet: { _ in ModifierSheetView() },
+                cover: { _ in EmptyView() }
+            )
+        }
+    }
+}
+
+struct ModifierDestinationView: View {
+    let route: DemoRoute
+    @Environment(DemoRouter.self) private var router
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Env router depth: \(router.path.count)")
+                .accessibilityIdentifier("modifierEnvDepth")
+            Button("Push Another Via Env") {
+                if case .step(let index) = route {
+                    router.push(.step(index + 1))
+                }
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .navigationTitle("Modifier Detail")
+    }
+}
+
+struct ModifierSheetView: View {
+    @Environment(DemoRouter.self) private var router
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Modifier sheet has router: \(router.sheet?.id ?? "none")")
+                .accessibilityIdentifier("modifierSheetEnv")
+            Button("Close Modifier Sheet") {
+                router.dismiss()
+            }
+            .buttonStyle(.borderedProminent)
+        }
     }
 }
 
@@ -280,6 +386,7 @@ struct AsyncLabView: View {
                 Text("Stack items: \(labRouter.path.count)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("labStackCount")
 
                 Spacer()
             }
