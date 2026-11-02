@@ -4,6 +4,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-02
+
 ### Added
 - `NavigationRouter<Route, Sheet, Cover>`: one `@MainActor @Observable` router for stack, sheet, and cover.
 - `BaseNavigationContainer` and `View.navigationRouter(...)`.
@@ -30,5 +32,6 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 Last 1.x release (`BaseNavigationStack<ScreenView>` + `BaseViewProtocol`).
 
-[Unreleased]: https://github.com/iletai/BaseNavigationStack/compare/1.0.3...develop
+[Unreleased]: https://github.com/iletai/BaseNavigationStack/compare/2.0.0...develop
+[2.0.0]: https://github.com/iletai/BaseNavigationStack/compare/1.0.3...2.0.0
 [1.0.3]: https://github.com/iletai/BaseNavigationStack/releases/tag/1.0.3
