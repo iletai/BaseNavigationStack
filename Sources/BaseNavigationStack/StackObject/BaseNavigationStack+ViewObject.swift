@@ -15,18 +15,14 @@ extension BaseNavigationStack {
         var navigationPath = [ScreenView]()
 
         /// View Is Presenting In Navigation Stack
-        var presentingSheet: ScreenView? = nil
+        var presentingSheet: ScreenView?
 
         /// View Is Presenting Full
-        var presentingFullScreen: ScreenView? = nil
+        var presentingFullScreen: ScreenView?
 
         /// Status Is Presenting A View
         var isPresented: Binding<ScreenView?>
 
-        var isPresenting: Bool {
-            return presentingSheet != nil || presentingFullScreen != nil
-        }
-        
         /// Initial
         /// - Parameter isPresented: With Router Stack Init View.
         init(isPresented: Binding<ScreenView?>) {
