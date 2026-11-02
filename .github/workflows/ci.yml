@@ -19,7 +19,7 @@ jobs:
     runs-on: macos-26
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install SwiftLint ${{ env.SWIFTLINT_VERSION }}
         run: |
@@ -35,7 +35,7 @@ jobs:
     runs-on: macos-26
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -50,7 +50,7 @@ jobs:
     runs-on: macos-26
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
