@@ -28,20 +28,7 @@ public extension View {
         @ViewBuilder sheet: @escaping (Sheet) -> SheetContent,
         @ViewBuilder cover: @escaping (Cover) -> CoverContent
     ) -> some View {
-        @Bindable var bindableRouter = router
-        // Pushed destinations take their environment from the NavigationStack, not from this view,
-        // so the router is injected into each destination. Sheets and covers inherit it from this view.
-        return self
-            .navigationDestination(for: Route.self) { route in
-                destination(route).environment(router)
-            }
-            .sheet(item: $bindableRouter.sheet) { sheetTarget in
-                sheet(sheetTarget)
-            }
-            .coverPresentation(item: $bindableRouter.cover) { coverTarget in
-                cover(coverTarget)
-            }
-            .environment(router)
+        modifier(RouterModifier(router: router, destination: destination, sheet: sheet, cover: cover))
     }
 
     /// Convenience modifier for Stack-only routing.
@@ -76,5 +63,42 @@ extension View {
         #else
         fullScreenCover(item: item, content: content)
         #endif
+    }
+}
+
+private struct RouterModifier<
+    Route: Hashable & Sendable,
+    Sheet: Identifiable & Hashable & Sendable,
+    Cover: Identifiable & Hashable & Sendable,
+    Destination: View,
+    SheetContent: View,
+    CoverContent: View
+>: ViewModifier {
+    @Bindable var router: NavigationRouter<Route, Sheet, Cover>
+    let destination: (Route) -> Destination
+    let sheet: (Sheet) -> SheetContent
+    let cover: (Cover) -> CoverContent
+    @Namespace private var namespace
+
+    func body(content: Content) -> some View {
+        // Pushed destinations take their environment from the NavigationStack, not from this view,
+        // so the router and zoom namespace are injected into each destination. Sheets and covers
+        // inherit them from this view.
+        content
+            .navigationDestination(for: Route.self) { route in
+                destination(route)
+                    .environment(router)
+                    .environment(\.navigationTransitionNamespace, namespace)
+                    .modifier(ZoomDestinationModifier(sourceID: router.zoomSources[route]))
+            }
+            .sheet(item: $router.sheet) { target in
+                sheet(target)
+                    .modifier(SheetOptionsModifier(options: (target as? SheetPresentable)?.sheetOptions))
+            }
+            .coverPresentation(item: $router.cover) { target in
+                cover(target)
+            }
+            .environment(router)
+            .environment(\.navigationTransitionNamespace, namespace)
     }
 }
