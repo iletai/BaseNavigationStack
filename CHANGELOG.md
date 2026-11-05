@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added
+- Opt-in zoom transitions: `router.push(_:zoomFrom:)` plus `View.baseNavigationTransitionSource(id:)`. Uses `navigationTransition(.zoom)` on iOS 18+; earlier OS versions and other platforms fall back to the default push.
+- `SheetOptions` and `SheetPresentable`: a `Sheet` value that conforms carries its detents, drag indicator, corner radius, background interaction and interactive-dismiss setting; `navigationRouter(...)` applies them. Non-conforming sheets are unchanged.
+
 ### Fixed
 - `View.navigationRouter(...)` on a hand-built `NavigationStack`: pushed destinations crashed when reading the router from `@Environment`, because `.environment(router)` was applied inside the stack. The router is now injected into every pushed destination (sheets and covers already inherited it). `BaseNavigationContainer` was not affected.
 

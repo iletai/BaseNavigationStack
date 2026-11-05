@@ -31,6 +31,10 @@ public final class NavigationRouter<Route: Hashable & Sendable, Sheet: Identifia
         didSet { if maxDepth < 1 { maxDepth = 1 } }
     }
 
+    /// Zoom source id recorded per route by `push(_:zoomFrom:)`; read when the destination is built.
+    @ObservationIgnored
+    var zoomSources: [Route: AnyHashable] = [:]
+
     public init(
         initialPath: [Route] = [],
         initialSheet: Sheet? = nil,
@@ -57,7 +61,18 @@ public final class NavigationRouter<Route: Hashable & Sendable, Sheet: Identifia
             Self.logger.debug("push ignored: route equals current top")
             return false
         }
+        zoomSources[route] = nil
         path.append(route)
+        return true
+    }
+
+    /// Pushes `route` with a zoom transition from the view tagged `.baseNavigationTransitionSource(id:)`.
+    /// Falls back to the default push before iOS 18.
+    /// - Returns: `false` if the push was rejected.
+    @discardableResult
+    public func push(_ route: Route, zoomFrom sourceID: some Hashable & Sendable) -> Bool {
+        guard push(route) else { return false }
+        zoomSources[route] = AnyHashable(sourceID)
         return true
     }
 
